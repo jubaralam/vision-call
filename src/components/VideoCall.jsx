@@ -12,9 +12,16 @@ function VideoCall() {
   const myVideo = useRef();
   const peerVideo = useRef();
 
-
-
-
+  // useEffect(() => {
+  //   const urlParams = new URLSearchParams(window.location.search);
+  //   const roomFromUrl = urlParams.get("room");
+  //   if (roomFromUrl) {
+  //     setRoomId(roomFromUrl);
+  //     startCall(true);
+  //   } else {
+  //     setRoomId(Math.random().toString(36).substring(7));
+  //   }
+  // }, []);
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const roomFromUrl = urlParams.get("room");
@@ -25,7 +32,6 @@ function VideoCall() {
       setRoomId(Math.random().toString(36).substring(7));
     }
   }, []);
-  
 
   const startCall = async (isPeer = false) => {
     try {
@@ -46,49 +52,49 @@ function VideoCall() {
     }
   };
 
-//   const createPeer = () => {
-//     try {
-//       const newPeer = new Peer({
-//         initiator: true,
-//         trickle: false,
-//         stream,
-//       });
+  //   const createPeer = () => {
+  //     try {
+  //       const newPeer = new Peer({
+  //         initiator: true,
+  //         trickle: false,
+  //         stream,
+  //       });
 
-//       newPeer.on("signal", (data) => {
-//         localStorage.setItem(`signal-${roomId}`, JSON.stringify(data));
-//         setConnectionStatus("waiting for peer");
-//       });
+  //       newPeer.on("signal", (data) => {
+  //         localStorage.setItem(`signal-${roomId}`, JSON.stringify(data));
+  //         setConnectionStatus("waiting for peer");
+  //       });
 
-//       setupPeerEvents(newPeer);
-//       setPeer(newPeer);
-//     } catch (err) {
-//       console.error("Error creating peer:", err);
-//       setConnectionStatus("error");
-//     }
-//   };
+  //       setupPeerEvents(newPeer);
+  //       setPeer(newPeer);
+  //     } catch (err) {
+  //       console.error("Error creating peer:", err);
+  //       setConnectionStatus("error");
+  //     }
+  //   };
 
-//   const joinAsPeer = () => {
-//     try {
-//       const newPeer = new Peer({
-//         initiator: false,
-//         trickle: false,
-//         stream,
-//       });
+  //   const joinAsPeer = () => {
+  //     try {
+  //       const newPeer = new Peer({
+  //         initiator: false,
+  //         trickle: false,
+  //         stream,
+  //       });
 
-//       newPeer.on("signal", (data) => {
-//         const hostSignal = JSON.parse(localStorage.getItem(`signal-${roomId}`));
-//         if (hostSignal) {
-//           newPeer.signal(hostSignal);
-//         }
-//       });
+  //       newPeer.on("signal", (data) => {
+  //         const hostSignal = JSON.parse(localStorage.getItem(`signal-${roomId}`));
+  //         if (hostSignal) {
+  //           newPeer.signal(hostSignal);
+  //         }
+  //       });
 
-//       setupPeerEvents(newPeer);
-//       setPeer(newPeer);
-//     } catch (err) {
-//       console.error("Error joining as peer:", err);
-//       setConnectionStatus("error");
-//     }
-//   };
+  //       setupPeerEvents(newPeer);
+  //       setPeer(newPeer);
+  //     } catch (err) {
+  //       console.error("Error joining as peer:", err);
+  //       setConnectionStatus("error");
+  //     }
+  //   };
 
   const joinViaLink = (e) => {
     e.preventDefault();
@@ -148,13 +154,13 @@ function VideoCall() {
       trickle: false,
       stream,
     });
-  
+
     // Store Host Signal
     newPeer.on("signal", (data) => {
       localStorage.setItem(`hostSignal-${roomId}`, JSON.stringify(data));
       setConnectionStatus("waiting for peer");
     });
-  
+
     // Wait for Peer Signal
     const checkPeerSignal = setInterval(() => {
       const peerSignal = localStorage.getItem(`peerSignal-${roomId}`);
@@ -163,46 +169,44 @@ function VideoCall() {
         clearInterval(checkPeerSignal);
       }
     }, 1000);
-  
+
     setupPeerEvents(newPeer);
     setPeer(newPeer);
   };
-  
+
   const joinAsPeer = () => {
     const newPeer = new Peer({
       initiator: false,
       trickle: false,
       stream,
     });
-  
+
     // Send Peer Signal
     newPeer.on("signal", (data) => {
       localStorage.setItem(`peerSignal-${roomId}`, JSON.stringify(data));
     });
-  
+
     // Use Host Signal
     const hostSignal = localStorage.getItem(`hostSignal-${roomId}`);
     if (hostSignal) {
       newPeer.signal(JSON.parse(hostSignal));
     }
-  
+
     setupPeerEvents(newPeer);
     setPeer(newPeer);
   };
 
-  const getJoinLink = () => `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+  const getJoinLink = () =>
+    `${window.location.origin}${window.location.pathname}?room=${roomId}`;
 
-
-  
   const copyJoinLink = () => {
     navigator.clipboard.writeText(getJoinLink());
   };
 
-
   const handleJoin = () => {
     if (peerLink) window.location.href = peerLink;
   };
- 
+
   const endCall = () => {
     if (peer) {
       peer.destroy();
@@ -219,6 +223,21 @@ function VideoCall() {
 
   return (
     <div className="p-4">
+      <div>
+        <form onSubmit={joinViaLink}>
+          <input
+            type="text"
+            value={peerLink}
+            onChange={(e) => setPeerLink(e.target.value)}
+            placeholder="Paste peer's link"
+          />
+          <button type="submit">Join Call</button>
+        </form>
+        <button onClick={copyJoinLink}>Copy Link</button>
+        <div>Status: {connectionStatus}</div>
+        <video ref={myVideo} autoPlay muted playsInline />
+        <video ref={peerVideo} autoPlay playsInline />
+      </div>
       <div className="mb-4 space-x-2">
         {!stream && (
           <div className="space-y-4">
@@ -244,7 +263,9 @@ function VideoCall() {
               >
                 Join Call
               </button>
-              <button onClick={handleJoin} disabled={!peerLink}>Join Call</button>
+              {/* <button onClick={handleJoin} disabled={!peerLink}>
+                Join Call
+              </button> */}
             </form>
           </div>
         )}
